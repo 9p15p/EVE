@@ -1,5 +1,11 @@
 # Detailed Tutorials
 
+* First, download the [ckpt](https://drive.google.com/drive/folders/1dvhbhtA8mHX7gG8-_UMr6lBqTwdlaCc5?usp=sharing) in `saves/`run the following command.
+
+```
+python sam_scripts/demo_video.py
+```
+
 * Click `Input Video` button to upload your video. The process of initializing the model and the video can be a bit lengthy, please be patient.
 
 ![image.png](docs_EVE/image.png)

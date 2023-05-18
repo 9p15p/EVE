@@ -70,7 +70,7 @@ def init_EVE(vid_length=20):  # TODO:想办法每次都输入vid_length
     from segment_anything.automatic_mask_generator import SamAutomaticMaskGenerator
     from segment_anything import SamPredictor
     config = edict({
-        'model': 'saves/vit_h_s2/vit_h_s2_70000.pth',
+        'model': 'saves/vith_full_s2_160000.pth',
         'd16_path': '/DAVIS-2017-trainval-480p',
         'd17_path': '/DAVIS-2017-trainval-480p',
         'y18_path': '/YouTube2018',
