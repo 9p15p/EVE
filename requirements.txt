@@ -1,0 +1,10 @@
+progressbar2
+matplotlib
+scikit-image
+easydict
+gdown
+gitpython
+git+https://github.com/cheind/py-thin-plate-spline.git
+hickle
+tensorboard
+numpy

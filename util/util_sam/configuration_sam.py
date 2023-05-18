@@ -1,0 +1,168 @@
+from argparse import ArgumentParser
+from easydict import EasyDict as edict
+import getpass
+import os
+
+
+def none_or_default(x, default):
+    return x if x is not None else default
+
+
+class Configuration():
+    def parse(self, unknown_arg_ok=False):
+        parser = ArgumentParser()
+
+        # Enable torch.backends.cudnn.benchmark -- Faster in some cases, test in your own environment
+        parser.add_argument('--benchmark', action='store_true')
+        parser.add_argument('--no_amp', action='store_true')
+
+        # Data parameters
+        parser.add_argument('--static_root', help='Static training data root', default='/static')
+        parser.add_argument('--bl_root', help='Blender training data root', default='/BL30K')
+        parser.add_argument('--yv_root', help='YouTubeVOS data root', default='/YouTube/train_480p')
+        parser.add_argument('--davis_root', help='DAVIS data root', default='/DAVIS-2017-trainval-480p')
+        parser.add_argument('--close_ytb', help='close ytbvos for debug', action='store_true')
+        parser.add_argument('--num_workers', help='Total number of dataloader workers across all GPUs processes',
+                            type=int, default=16)
+
+        """XMem special configs"""
+        parser.add_argument('--key_dim', default=64, type=int)
+        parser.add_argument('--value_dim', default=512, type=int)
+        parser.add_argument('--hidden_dim', default=64, help='Set to =0 to disable', type=int)
+        parser.add_argument('--deep_update_prob', default=0.2, type=float)
+
+        """SAM special configs"""
+        parser.add_argument('--model_type', help='model_type for SAM', default='default')
+
+        parser.add_argument('--stages', help='Training stage (0-static images, 1-Blender dataset, 2-DAVIS+YouTubeVOS)',
+                            default='02')
+        """
+        Stage-specific learning parameters
+        Batch sizes are effective -- you don't have to scale them when you scale the number processes
+        """
+        # Stage 0, static images
+        parser.add_argument('--s0_batch_size', default=16, type=int)
+        parser.add_argument('--s0_iterations', default=150000, type=int)
+        parser.add_argument('--s0_finetune', default=0, type=int)
+        parser.add_argument('--s0_steps', nargs="*", default=[], type=int)
+        parser.add_argument('--s0_lr', help='Initial learning rate', default=1e-5, type=float)
+        parser.add_argument('--s0_num_ref_frames', default=2, type=int)
+        parser.add_argument('--s0_num_frames', default=3, type=int)
+        parser.add_argument('--s0_start_warm', default=20000, type=int)
+        parser.add_argument('--s0_end_warm', default=70000, type=int)
+
+        # Stage 1, BL30K
+        parser.add_argument('--s1_batch_size', default=8, type=int)
+        parser.add_argument('--s1_iterations', default=250000, type=int)
+        # fine-tune means fewer augmentations to train the sensory memory
+        parser.add_argument('--s1_finetune', default=0, type=int)
+        parser.add_argument('--s1_steps', nargs="*", default=[200000], type=int)
+        parser.add_argument('--s1_lr', help='Initial learning rate', default=1e-5, type=float)
+        parser.add_argument('--s1_num_ref_frames', default=3, type=int)
+        parser.add_argument('--s1_num_frames', default=8, type=int)
+        parser.add_argument('--s1_start_warm', default=20000, type=int)
+        parser.add_argument('--s1_end_warm', default=70000, type=int)
+
+        # Stage 2, DAVIS+YoutubeVOS, longer
+        parser.add_argument('--s2_batch_size', default=8, type=int)
+        parser.add_argument('--s2_iterations', default=150000, type=int)
+        # fine-tune means fewer augmentations to train the sensory memory
+        parser.add_argument('--s2_finetune', default=10000, type=int)
+        parser.add_argument('--s2_steps', nargs="*", default=[120000], type=int)
+        parser.add_argument('--s2_lr', help='Initial learning rate', default=1e-5, type=float)
+        parser.add_argument('--s2_num_ref_frames', default=3, type=int)
+        parser.add_argument('--s2_num_frames', default=8, type=int)
+        parser.add_argument('--s2_start_warm', default=20000, type=int)
+        parser.add_argument('--s2_end_warm', default=70000, type=int)
+
+        # Stage 3, DAVIS+YoutubeVOS, shorter
+        parser.add_argument('--s3_batch_size', default=8, type=int)
+        parser.add_argument('--s3_iterations', default=100000, type=int)
+        # fine-tune means fewer augmentations to train the sensory memory
+        parser.add_argument('--s3_finetune', default=10000, type=int)
+        parser.add_argument('--s3_steps', nargs="*", default=[80000], type=int)
+        parser.add_argument('--s3_lr', help='Initial learning rate', default=1e-5, type=float)
+        parser.add_argument('--s3_num_ref_frames', default=3, type=int)
+        parser.add_argument('--s3_num_frames', default=8, type=int)
+        parser.add_argument('--s3_start_warm', default=20000, type=int)
+        parser.add_argument('--s3_end_warm', default=70000, type=int)
+
+        parser.add_argument('--gamma', help='LR := LR*gamma at every decay step', default=0.1, type=float)
+        parser.add_argument('--weight_decay', default=0.05, type=float)
+
+        # Loading
+        parser.add_argument('--load_network', help='Path to pretrained network weight only')
+        parser.add_argument('--load_checkpoint',
+                            help='Path to the checkpoint file, including network, optimizer and such')
+
+        # Logging information
+        parser.add_argument('--log_text_interval', default=100, type=int)
+        parser.add_argument('--log_image_interval', default=1000, type=int)
+        parser.add_argument('--save_network_interval', default=25000, type=int)
+        parser.add_argument('--save_checkpoint_interval', default=50000, type=int)
+        parser.add_argument('--exp_id', help='Experiment UNIQUE id, use NULL to disable logging to tensorboard',
+                            default='NULL')
+        parser.add_argument('--debug', help='Debug mode which logs information more often', action='store_true')
+
+        # Multiprocessing parameters, not set by users
+        # Only for debug, don't set this in training
+        # parser.add_argument('--local_rank', default=0, type=int, help='Local rank of this process')
+
+        if unknown_arg_ok:
+            args, _ = parser.parse_known_args()
+            self.args = edict(vars(args))
+        else:
+            self.args = edict(vars(parser.parse_args()))
+
+        self.args['amp'] = not self.args['no_amp']
+
+        # check if the stages are valid
+        stage_to_perform = list(self.args['stages'])
+        for s in stage_to_perform:
+            if s not in ['0', '1', '2', '3']:
+                raise NotImplementedError
+
+        if "supermicro-2" in os.getcwd():
+            self.args.davis_root = "/media/supermicro-2/LiGong4T-1/ldz_projects/DATASET/DAVIS"
+            self.args.yv_root = "/media/supermicro-2/LiGong4T-1/ldz_dataset/YoutubeVOS2018/train"
+        elif "HD4T" in os.getcwd():
+            self.args.davis_root = "/media/HD4T/ldz_proj/DATASET/DAVIS-2017-trainval-480p/DAVIS-2017-trainval"
+            self.args.yv_root = "/media/HD4T/ldz_proj/DATASET/YouTube/train"
+        elif "ok" in getpass.getuser():
+            self.args.davis_root = "/data/ldz_proj/DATASET/DAVIS2017"
+            self.args.yv_root = "/data/ldz_proj/DATASET/YoutubeVOS2019/train"
+        elif "titan1" in getpass.getuser():
+            self.args.davis_root = "/media/titan1/52f525b8-0ae0-4e4c-8c95-8c8641e2743a/ldz_proj/DATASET/DAVIS2017"
+            self.args.yv_root = "/media/titan1/52f525b8-0ae0-4e4c-8c95-8c8641e2743a/ldz_proj/DATASET/YoutubeVOS2019/train"
+
+        if self.args.model_type in ['default','vit_h']:
+            self.args.sam_checkpoint = 'saves/sam_vit_h_4b8939.pth'
+        elif self.args.model_type in ['vit_l']:
+            self.args.sam_checkpoint = 'saves/sam_vit_l_0b3195.pth'
+        elif self.args.model_type in ['vit_b']:
+            self.args.sam_checkpoint = 'saves/sam_vit_b_01ec64.pth'
+
+
+    def get_stage_parameters(self, stage):
+        parameters = {
+            'batch_size': self.args['s%s_batch_size' % stage],
+            'iterations': self.args['s%s_iterations' % stage] + 2,
+            'finetune': self.args['s%s_finetune' % stage],
+            'steps': self.args['s%s_steps' % stage],
+            'lr': self.args['s%s_lr' % stage],
+            'num_ref_frames': self.args['s%s_num_ref_frames' % stage],
+            'num_frames': self.args['s%s_num_frames' % stage],
+            'start_warm': self.args['s%s_start_warm' % stage],
+            'end_warm': self.args['s%s_end_warm' % stage],
+        }
+
+        return parameters
+
+    def __getitem__(self, key):
+        return self.args[key]
+
+    def __setitem__(self, key, value):
+        self.args[key] = value
+
+    def __str__(self):
+        return str(self.args)
