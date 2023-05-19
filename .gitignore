@@ -135,6 +135,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /vis/
-!/output/
-!/output/
-!/saves/
+/sam_scripts/demo_outputs/
+/sam_scripts/assets/other_mp4/

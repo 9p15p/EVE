@@ -18,6 +18,10 @@ on their own datasets easily.
 ```shell
 conda create -n EVE python=3.8 -y
 conda activate EVE
+
+# video_demo
+pip install gradio
+
 # XMem
 conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install opencv-python
@@ -123,4 +127,4 @@ Performances on DAVIS2017-val
 ## 👏 Acknowledgements
 
 This project is based on [XMem](https://github.com/hkchengrex/XMem)
-and [Segment-Anything](https://github.com/facebookresearch/segment-anything). Thanks for their outstanding work.
+and [Segment-Anything](https://github.com/facebookresearch/segment-anything). The design of demo_video is inspired by [SAM-Track](https://github.com/z-x-yang/Segment-and-Track-Anything). Thanks for their outstanding work.

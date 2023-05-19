@@ -63,9 +63,9 @@ def get_meta_from_video(input_video):
         mapper, f_id, imgs_stack, msks_stack, curr_img, masks_tensor, clicks_stack, curr_overlay
 
 
-
 @torch.no_grad()
 def init_EVE(vid_length=20):  # TODO:想办法每次都输入vid_length
+    torch.cuda.empty_cache()
     from model.model_sam.network_sam import EVE
     from segment_anything.automatic_mask_generator import SamAutomaticMaskGenerator
     from segment_anything import SamPredictor
@@ -168,7 +168,7 @@ def seg_everything(image, auto_masker, ALLOW_MIN_AREA, MAX_NUM_OBJ):
     masks = select_sorted(masks, ALLOW_MIN_AREA, MAX_NUM_OBJ)
     masks_tensor = generate_masks_tensor(masks)  # [num_obj+bg, h, w]
     masks_np = torch.argmax(masks_tensor, dim=0).detach().cpu().numpy()  # [h, w]
-    curr_overlay = check_overlay(masks_np, image, PALETTE)
+    curr_overlay = check_overlay(masks_np, image, PALETTE, save_overlay=True, f_id=0)
     print("seg_everything on current frame successfully.")
     return masks_tensor, curr_overlay
 
@@ -247,7 +247,7 @@ def seg_clicks(prompt_predictor, curr_img, masks_tensor, clicks_stack):
         masks_tensor[0] *= masks_tensor_new[0]
         masks_tensor[1] = masks_tensor_new[1]
     masks_np = torch.argmax(masks_tensor, dim=0).detach().cpu().numpy()  # [h, w]
-    curr_overlay = check_overlay(masks_np, curr_img, PALETTE)
+    curr_overlay = check_overlay(masks_np, curr_img, PALETTE, save_overlay=True, f_id=0)  # 如果不是第一帧，这里的f_id要改
     clicks_stack = dict(box=[], point=[], point_lb=[])
     print("seg one object on current frame successfully.")
     return masks_tensor, clicks_stack, curr_overlay
@@ -277,6 +277,7 @@ def add_new_obj_click(prompt_predictor, curr_img, masks_tensor, clicks_stack):
 
 @torch.no_grad()
 def reset_curr(curr_img):
+    torch.cuda.empty_cache()
     curr_overlay = curr_img
     masks_tensor = None
     clicks_stack = dict(box=[], point=[], point_lb=[])
@@ -285,6 +286,7 @@ def reset_curr(curr_img):
 
 
 def reset_video(input_video):
+    torch.cuda.empty_cache()
     if input_video is None:
         raise gr.Error("Please load video first.")
     print("Reset video succeccfully.")
@@ -489,6 +491,21 @@ def run_all(mapper, processor,
         output_video, output_overlay, output_mask
 
 
+# 将文件夹下的图片合成gif
+def make_gif(source_dir, output_filename):
+    filelist = os.listdir(source_dir)  # 获取该目录下的所有文件名
+    filelist.sort(key=lambda x: int(x[:-4]))
+    frames = []
+    for item in tqdm(filelist):
+        if item.endswith('.png'):
+            item = source_dir + '/' + item
+            img = Image.open(item)
+            frames.append(img)
+    frames[0].save(output_filename, format='GIF', append_images=frames[1:],
+                   save_all=True, duration=70, loop=0)
+    print('save output_gif successfully.')
+
+
 if __name__ == '__main__':
     pass
     # data_next_frame = torch.load("sam_scripts/assets/next_frame.pth")
@@ -498,6 +515,11 @@ if __name__ == '__main__':
     # next_frame(EVE, mapper, processor,
     #            f_id, msks_stack, masks_tensor)
 
-    path = "sam_scripts/demo_outputs/overlay"
-    mp4_path = "sam_scripts/demo_outputs/video.mp4"
-    picvideo(path, mp4_path)
+    # path = "sam_scripts/demo_outputs/overlay"
+    # mp4_path = "sam_scripts/demo_outputs/video.mp4"
+    # picvideo(path, mp4_path)
+
+    for dir_name in os.listdir("sam_scripts/demo_outputs"):
+        source_dir = f"sam_scripts/demo_outputs/{dir_name}/overlay"
+        output_filename = f"sam_scripts/demo_outputs/{dir_name}/overlay.gif"
+        make_gif(source_dir, output_filename)

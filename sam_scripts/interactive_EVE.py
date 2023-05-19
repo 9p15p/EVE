@@ -124,8 +124,6 @@ import os
 PALETTE = Image.open("sam_scripts/assets/blackswan_00000.png").getpalette()
 
 # 读取视频
-blackswan_video = "sam_scripts/assets/cars.mp4"
-blackswan_video = "sam_scripts/assets/cell.mp4"
 blackswan_video = "sam_scripts/assets/blackswan.mp4"
 
 
