@@ -519,7 +519,7 @@ if __name__ == '__main__':
     # mp4_path = "sam_scripts/demo_outputs/video.mp4"
     # picvideo(path, mp4_path)
 
-    for dir_name in os.listdir("sam_scripts/demo_outputs"):
-        source_dir = f"sam_scripts/demo_outputs/{dir_name}/overlay"
-        output_filename = f"sam_scripts/demo_outputs/{dir_name}/overlay.gif"
-        make_gif(source_dir, output_filename)
+    # for dir_name in os.listdir("sam_scripts/demo_outputs"):
+    #     source_dir = f"sam_scripts/demo_outputs/{dir_name}/overlay"
+    #     output_filename = f"sam_scripts/demo_outputs/{dir_name}/overlay.gif"
+    #     make_gif(source_dir, output_filename)

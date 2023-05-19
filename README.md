@@ -44,10 +44,10 @@ python setup.py install
 
 1. Segment everything in video.
 
-   ![EVE_demo_0.mp4](docs/docs_EVE/EVE_demo_0.mp4)
+   ![EVE_demo_0.mp4](docs/docs_EVE/EVE_demo_0.gif)
 2. Segment specific object in video.
 
-   ![EVE_demo_1.mp4](docs/docs_EVE/EVE_demo_1.mp4)
+   ![EVE_demo_1.mp4](docs/docs_EVE/EVE_demo_1.gif)
 
 ### Detailed Tutorails
 
