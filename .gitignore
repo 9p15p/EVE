@@ -4,6 +4,7 @@ output/
 .vscode/
 workspace/
 run*.sh
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
