@@ -28,8 +28,5 @@ torchrun --nproc_per_node=4 sam_scripts/train_EVE.py \
 #  --save_checkpoint_interval 6000 \
 #  --load_checkpoint saves/debug_s2/debug_s2_checkpoint_48000.pth
 
-| col1 | col2 | col3 | col1 | col2 | col3 | col3 |
-| ---- | ---- | ---- | ---- | ---- | ---- | ---- |
-
-| J&F-Mean | J-Mean | J-Recall | J-Decay | F-Mean  | F-Recall | F-Decay
-| 0.831953 | 0.805476 | 0.893966 | 0.071745 | 0.85843 | 0.929103 | 0.098502
+#| J&F-Mean | J-Mean | J-Recall | J-Decay | F-Mean  | F-Recall | F-Decay
+#| 0.831953 | 0.805476 | 0.893966 | 0.071745 | 0.85843 | 0.929103 | 0.098502
